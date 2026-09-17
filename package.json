@@ -1,0 +1,12 @@
+{
+  "name": "livespeech-test-session1",
+  "version": "1.0.0",
+  "description": "LiveSpeech MLX TX — Session 1 Light Mode Landing Page",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
