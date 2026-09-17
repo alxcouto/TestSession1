@@ -31,7 +31,7 @@
             background-color: var(--bg-color);
             color: var(--text-primary);
             min-height: 100vh;
-            padding: 24px;
+            padding: 16px 24px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -40,12 +40,16 @@
         .container {
             width: 100%;
             max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 32px);
+            min-height: 750px;
         }
 
         header {
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             background: var(--card-bg);
-            padding: 24px 32px;
+            padding: 16px 24px;
             border-radius: 16px;
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow);
@@ -54,31 +58,32 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 16px;
+            flex: 0 0 auto;
         }
 
         .header-title h1 {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 700;
             color: var(--text-primary);
             letter-spacing: -0.02em;
         }
 
         .header-title p {
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             color: var(--text-secondary);
-            margin-top: 4px;
+            margin-top: 2px;
         }
 
         .status-badge {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
+            padding: 6px 14px;
             background-color: var(--badge-bg);
             color: var(--badge-text);
             border-radius: 9999px;
             font-weight: 600;
-            font-size: 0.875rem;
+            font-size: 0.825rem;
         }
 
         .pulse-dot {
@@ -112,7 +117,8 @@
             box-shadow: var(--shadow);
             overflow: hidden;
             width: 100%;
-            height: 720px;
+            flex: 1;
+            min-height: 0;
         }
 
         .player-card iframe {
@@ -123,10 +129,11 @@
         }
 
         footer {
-            margin-top: 24px;
+            margin-top: 12px;
             text-align: center;
-            font-size: 0.875rem;
+            font-size: 0.825rem;
             color: var(--text-secondary);
+            flex: 0 0 auto;
         }
     </style>
 </head>
