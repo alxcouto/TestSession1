@@ -25,10 +25,11 @@
             anon_key: "sb_publishable_2fWGDIEvKLRw-ryDvp3LGA_0riZdvLC"
         },
         broadcast_id: {
-            "session_1": "G5b1mC5-GEA",
-            "session_satellite_1_topcon": "1Mg11sWcvCA",
-            "session_2": "679t3yA1_Gw",
-            "session_satellite_2_isr": "MamngCWslYs"
+            "session_1": "OYB-rvbzUFs",
+            "session_satellite_1_topcon": "62YbUBNgSHo",
+            "session_2": "Emj-TTUjRkI",
+            "session_satellite_2_isr": "k9HMw14tZn4",
+            "session_3": "HfvuWBYpTh0"
         }
     };
 
@@ -58,6 +59,66 @@
 
     let viewerSessionId = localStorage.getItem('ls_viewer_session_id') || null;
     let heartbeatTimer = null;
+
+    // ==============================================================================
+    // 2B. Analytics bridge to the parent page (Matomo lives in the parent page)
+    // ==============================================================================
+    // This iframe does NOT load Matomo itself. It only reports what happens in the
+    // player to embed.js, which runs in the host page where window._paq exists.
+    const analyticsState = {
+        impressionSent: false,
+        lastPlayerState: null,
+        lastProgressMessageAt: 0,
+        milestonesSent: new Set()
+    };
+
+    function getPlayerSnapshot() {
+        let progress = 0;
+        let duration = 0;
+        let muted = false;
+        let volume = null;
+
+        try {
+            if (player && typeof player.getCurrentTime === 'function') progress = Number(player.getCurrentTime() || 0);
+            if (player && typeof player.getDuration === 'function') duration = Number(player.getDuration() || 0);
+            if (player && typeof player.isMuted === 'function') muted = !!player.isMuted();
+            if (player && typeof player.getVolume === 'function') volume = Number(player.getVolume());
+        } catch (e) {}
+
+        return { progress, duration, muted, volume };
+    }
+
+    function emitAnalytics(action, extra = {}) {
+        const payload = {
+            type: 'livespeech:analytics',
+            version: 2,
+            action,
+            session_key: sessionParam,
+            broadcast_id: resolvedBroadcastId,
+            selected_language: selectedLanguage,
+            subtitles_enabled: isSubtitlesEnabled,
+            tts_enabled: ttsEnabled,
+            timestamp: Date.now(),
+            ...extra
+        };
+
+        if (window.parent && window.parent !== window) {
+            // The parent validates event.source against the iframe it created.
+            window.parent.postMessage(payload, '*');
+        }
+    }
+
+    function checkAnalyticsMilestones(snapshot) {
+        if (!snapshot || !snapshot.duration || snapshot.duration <= 0) return;
+        const percent = (snapshot.progress / snapshot.duration) * 100;
+
+        [25, 50, 75, 90].forEach((milestone) => {
+            if (percent >= milestone && !analyticsState.milestonesSent.has(milestone)) {
+                analyticsState.milestonesSent.add(milestone);
+                emitAnalytics('milestone', { ...snapshot, milestone });
+            }
+        });
+    }
 
     // ==============================================================================
     // 3. UI Element References
@@ -104,15 +165,12 @@
     // ==============================================================================
     async function loadConfigAndInit() {
         try {
-            let response = await fetch('./config.json').catch(() => null);
+            let response = await fetch('../config.json').catch(() => null);
             if (!response || !response.ok) {
-                response = await fetch('../config.json').catch(() => null);
+                response = await fetch('./config.json').catch(() => null);
             }
             if (!response || !response.ok) {
                 response = await fetch('/config.json').catch(() => null);
-            }
-            if (!response || !response.ok) {
-                response = await fetch('/TestSession1/config.json').catch(() => null);
             }
 
             if (response && response.ok) {
@@ -124,12 +182,17 @@
                     SUPABASE_ANON_KEY = mainConfig.supabase.anon_key || SUPABASE_ANON_KEY;
                 }
 
-                if (mainConfig.broadcast_id && mainConfig.broadcast_id[sessionParam] && mainConfig.broadcast_id[sessionParam].trim().length > 0) {
-                    resolvedBroadcastId = mainConfig.broadcast_id[sessionParam].trim();
-                    console.log(`[Config Resolver] Resolved session '${sessionParam}' -> YouTube ID '${resolvedBroadcastId}'`);
+                if (mainConfig.broadcast_id) {
+                    if (mainConfig.broadcast_id[sessionParam] && mainConfig.broadcast_id[sessionParam].trim().length > 0) {
+                        resolvedBroadcastId = mainConfig.broadcast_id[sessionParam].trim();
+                        console.log(`[Config Resolver] Resolved session '${sessionParam}' -> YouTube ID '${resolvedBroadcastId}'`);
+                    } else {
+                        resolvedBroadcastId = sessionParam;
+                        console.log(`[Config Resolver] Session key '${sessionParam}' not in config.json or empty; using raw ID: '${resolvedBroadcastId}'`);
+                    }
                 }
             } else {
-                console.warn('[Config Resolver] Using built-in default YouTube & Supabase config:', resolvedBroadcastId);
+                console.warn('[Config Resolver] Could not load config.json. Using fallback parameters.');
             }
         } catch (err) {
             console.error('[Config Resolver] Error parsing config.json:', err);
@@ -164,7 +227,6 @@
                     autoplay: 1,
                     controls: 0,
                     cc_load_policy: 0,
-                    cc_lang_pref: 'none',
                     iv_load_policy: 3,
                     modestbranding: 1,
                     rel: 0,
@@ -186,6 +248,11 @@
 
     function onPlayerReady(event) {
         console.log('[YouTube API] Player Ready. Executing autoplay...');
+
+        if (!analyticsState.impressionSent) {
+            analyticsState.impressionSent = true;
+            emitAnalytics('impression', getPlayerSnapshot());
+        }
         
         try {
             if (player && typeof player.unloadModule === 'function') {
@@ -247,16 +314,6 @@
         if (!badgeLiveStatus || !btnCustomPlay) return;
 
         if (event.data === YT.PlayerState.PLAYING) {
-            try {
-                if (player && typeof player.unloadModule === 'function') {
-                    player.unloadModule('captions');
-                    player.unloadModule('cc');
-                }
-                if (player && typeof player.setOption === 'function') {
-                    player.setOption('captions', 'track', {});
-                    player.setOption('cc', 'track', {});
-                }
-            } catch (e) {}
             btnCustomPlay.textContent = '⏸ PAUSE';
             badgeLiveStatus.textContent = '🔴 LIVE';
             if (autoplayBanner && player && typeof player.isMuted === 'function' && !player.isMuted()) {
@@ -265,6 +322,20 @@
         } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
             btnCustomPlay.textContent = '▶ PLAY';
             badgeLiveStatus.textContent = '⏸ PAUSED';
+        }
+
+        const stateMap = {};
+        stateMap[YT.PlayerState.PLAYING] = 'play';
+        stateMap[YT.PlayerState.PAUSED] = 'pause';
+        stateMap[YT.PlayerState.ENDED] = 'finish';
+        stateMap[YT.PlayerState.BUFFERING] = 'buffering';
+
+        const analyticsAction = stateMap[event.data];
+        if (analyticsAction && analyticsState.lastPlayerState !== analyticsAction) {
+            analyticsState.lastPlayerState = analyticsAction;
+            const snapshot = getPlayerSnapshot();
+            emitAnalytics(analyticsAction, snapshot);
+            checkAnalyticsMilestones(snapshot);
         }
     }
 
@@ -304,8 +375,10 @@
             if (player.isMuted()) {
                 unmuteYouTubeAudio();
                 if (autoplayBanner) autoplayBanner.classList.add('hidden');
+                emitAnalytics('unmute', getPlayerSnapshot());
             } else {
                 muteYouTubeAudio();
+                emitAnalytics('mute', getPlayerSnapshot());
             }
         });
     }
@@ -314,6 +387,7 @@
         btnUnmuteAutoplay.addEventListener('click', () => {
             unmuteYouTubeAudio();
             if (autoplayBanner) autoplayBanner.classList.add('hidden');
+            emitAnalytics('unmute', getPlayerSnapshot());
         });
     }
 
@@ -323,6 +397,9 @@
             if (player && typeof player.setVolume === 'function') {
                 player.setVolume(vol);
             }
+        });
+        inputCustomVolume.addEventListener('change', (e) => {
+            emitAnalytics('volume_change', { ...getPlayerSnapshot(), volume: parseInt(e.target.value, 10) });
         });
     }
 
@@ -353,6 +430,7 @@
         const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
         btnCustomFs.textContent = isFs ? '🗗' : '⛶';
         btnCustomFs.title = isFs ? 'Exit Fullscreen' : 'Toggle Fullscreen';
+        emitAnalytics(isFs ? 'fullscreen_enter' : 'fullscreen_exit', getPlayerSnapshot());
     }
 
     document.addEventListener('fullscreenchange', updateFullscreenButtonIcon);
@@ -503,6 +581,20 @@
         if (!player || typeof player.getCurrentTime !== 'function') return;
 
         const rawTime = player.getCurrentTime() || 0;
+
+        // Send a lightweight progress message to the parent every 5 seconds while
+        // actually playing. embed.js uses this for Media Analytics; it does NOT create
+        // a normal Matomo Event every five seconds.
+        try {
+            const now = Date.now();
+            const state = typeof player.getPlayerState === 'function' ? player.getPlayerState() : null;
+            if (state === YT.PlayerState.PLAYING && now - analyticsState.lastProgressMessageAt >= 5000) {
+                analyticsState.lastProgressMessageAt = now;
+                const snapshot = getPlayerSnapshot();
+                emitAnalytics('progress', snapshot);
+                checkAnalyticsMilestones(snapshot);
+            }
+        } catch (e) {}
 
         if (displayPlayerTime) {
             const mins = Math.floor(rawTime / 60);
@@ -684,6 +776,7 @@
                 if (subtitlesStateText) subtitlesStateText.textContent = isSubtitlesEnabled ? 'ON' : 'OFF';
                 renderActiveCaption();
                 sendHeartbeat();
+                emitAnalytics(isSubtitlesEnabled ? 'subtitles_on' : 'subtitles_off', getPlayerSnapshot());
             });
         }
 
@@ -693,6 +786,7 @@
                 console.log('[Language Selector] Changed target language to:', selectedLanguage);
                 renderActiveCaption();
                 sendHeartbeat();
+                emitAnalytics('language_change', { ...getPlayerSnapshot(), language: selectedLanguage });
             });
         }
 
@@ -709,6 +803,8 @@
                     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
                     unmuteYouTubeAudio();
                 }
+
+                emitAnalytics(ttsEnabled ? 'tts_on' : 'tts_off', getPlayerSnapshot());
             });
         }
     }
