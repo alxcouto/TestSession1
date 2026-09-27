@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveSpeech MLX TX — Multi-Session & Matomo Test Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Matomo Cloud Tracking Snippet (Standard Production Integration) -->
+    <script>
+        var _paq = window._paq = window._paq || [];
+        /* Tracker methods can be called before the script is loaded */
+        _paq.push(['trackPageView']);
+        _paq.push(['enableLinkTracking']);
+        (function() {
+            // Simulated / production Matomo host URL
+            var u = "https://analytics.livespeech.internal/";
+            _paq.push(['setTrackerUrl', u + 'matomo.php']);
+            _paq.push(['setSiteId', '1']);
+        })();
+    </script>
+
+    <style>
+        :root, :root[data-theme="dark"] {
+            --bg-page: #090d16;
+            --bg-header: rgba(15, 23, 42, 0.85);
+            --bg-card: rgba(22, 33, 56, 0.7);
+            --bg-card-hover: rgba(30, 45, 76, 0.85);
+            --border-card: rgba(255, 255, 255, 0.1);
+            --border-accent: rgba(56, 189, 248, 0.35);
+            --text-title: #f8fafc;
+            --text-body: #cbd5e1;
+            --text-muted: #94a3b8;
+            --accent-cyan: #38bdf8;
+            --accent-cyan-hover: #0284c7;
+            --accent-indigo: #6366f1;
+            --badge-live-bg: #dc2626;
+            --badge-pill-bg: rgba(56, 189, 248, 0.12);
+            --badge-pill-border: rgba(56, 189, 248, 0.25);
+            --badge-pill-text: #38bdf8;
+            --shadow-subtle: 0 12px 36px -8px rgba(0, 0, 0, 0.5);
+            --console-bg: #030712;
+            --console-border: rgba(56, 189, 248, 0.2);
+            --tab-active-bg: #1e293b;
+            --tab-active-border: #38bdf8;
+        }
+
+        :root[data-theme="light"] {
+            --bg-page: #f1f5f9;
+            --bg-header: rgba(255, 255, 255, 0.9);
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --bg-card-hover: rgba(255, 255, 255, 0.98);
+            --border-card: rgba(0, 0, 0, 0.08);
+            --border-accent: rgba(2, 132, 199, 0.35);
+            --text-title: #0f172a;
+            --text-body: #334155;
+            --text-muted: #64748b;
+            --accent-cyan: #0284c7;
+            --accent-cyan-hover: #0369a1;
+            --accent-indigo: #4f46e5;
+            --badge-live-bg: #ef4444;
+            --badge-pill-bg: rgba(2, 132, 199, 0.1);
+            --badge-pill-border: rgba(2, 132, 199, 0.25);
+            --badge-pill-text: #0284c7;
+            --shadow-subtle: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
+            --console-bg: #ffffff;
+            --console-border: rgba(0, 0, 0, 0.15);
+            --tab-active-bg: #e2e8f0;
+            --tab-active-border: #0284c7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-body);
+            min-height: 100vh;
+            padding: 20px 24px 60px 24px;
+            line-height: 1.5;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        .layout-wrapper {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* --- Header --- */
+        header {
+            background: var(--bg-header);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-card);
+            border-radius: 18px;
+            padding: 20px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+        }
+
+        .brand-text h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--text-title);
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-text p {
+            font-size: 0.86rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(220, 38, 38, 0.15);
+            border: 1px solid rgba(220, 38, 38, 0.35);
+            border-radius: 9999px;
+            color: #ef4444;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .btn {
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border-card);
+            background: var(--bg-card);
+            color: var(--text-title);
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .btn-theme-toggle {
+            padding: 8px 12px;
+        }
+
+        /* --- View Mode Switcher & Sessions Bar --- */
+        .controls-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            padding: 12px 18px;
+        }
+
+        .session-tabs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            overflow-x: auto;
+        }
+
+        .session-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-card);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.86rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            white-space: nowrap;
+        }
+
+        .session-tab:hover {
+            color: var(--text-title);
+            background: var(--tab-active-bg);
+            border-color: var(--border-accent);
+        }
+
+        .session-tab.active {
+            background: var(--tab-active-bg);
+            border-color: var(--tab-active-border);
+            color: var(--accent-cyan);
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.15);
+        }
+
+        .tab-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            padding: 2px 6px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            color: inherit;
+        }
+
+        .mode-toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-page);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--border-card);
+        }
+
+        .btn-mode-toggle {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-mode-toggle.active {
+            background: var(--accent-cyan);
+            color: #04111d;
+            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+        }
+
+        /* --- Session Info Ribbon --- */
+        .session-info-ribbon {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 12px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 14px;
+            font-size: 0.86rem;
+        }
+
+        .info-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .info-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+        }
+
+        .info-item strong {
+            color: var(--text-title);
+        }
+
+        .info-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            background: var(--badge-pill-bg);
+            border: 1px solid var(--badge-pill-border);
+            border-radius: 9999px;
+            color: var(--badge-pill-text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .btn-link-external {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-link-external:hover {
+            text-decoration: underline;
+        }
+
+        /* --- Player Workspace --- */
+        .player-workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Focus View */
+        .focus-container {
+            width: 100%;
+            height: 720px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: var(--shadow-subtle);
+            position: relative;
+        }
+
+        .focus-container .livespeech-embed {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Multi Grid View */
+        .grid-container {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(620px, 1fr));
+            gap: 24px;
+        }
+
+        .grid-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .grid-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .grid-card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-title);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .grid-card .livespeech-embed {
+            width: 100%;
+            height: 600px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* --- Matomo Live Telemetry Inspector --- */
+        .matomo-inspector {
+            background: var(--console-bg);
+            border: 1px solid var(--console-border);
+            border-radius: 18px;
+            padding: 18px 24px;
+            box-shadow: var(--shadow-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .inspector-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-card);
+            padding-bottom: 12px;
+        }
+
+        .inspector-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-title);
+        }
+
+        .badge-matomo {
+            background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+            color: #ccfbf1;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .inspector-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .event-counter {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .inspector-log-container {
+            max-height: 240px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 6px;
+        }
+
+        .log-entry {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid var(--accent-cyan);
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .log-entry.category-video { border-left-color: #38bdf8; }
+        .log-entry.category-accessibility { border-left-color: #a855f7; }
+        .log-entry.category-controls { border-left-color: #f59e0b; }
+
+        .log-time {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            min-width: 65px;
+        }
+
+        .log-category {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .cat-video { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+        .cat-accessibility { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+        .cat-controls { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+
+        .log-action {
+            color: var(--text-title);
+            font-weight: 600;
+        }
+
+        .log-detail {
+            color: var(--text-body);
+            flex: 1;
+        }
+
+        .empty-log {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 24px;
+            font-style: italic;
+        }
+
+        /* --- Footer --- */
+        footer {
+            text-align: center;
+            font-size: 0.84rem;
+            color: var(--text-muted);
+            padding: 12px 0;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .grid-container { grid-template-columns: 1fr; }
+            .focus-container { height: 600px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout-wrapper">
+        <!-- Master Header -->
+        <header>
+            <div class="header-brand">
+                <div class="brand-icon">⚡</div>
+                <div class="brand-text">
+                    <h1>LiveSpeech MLX TX <span class="tab-badge">v3.0.0</span></h1>
+                    <p>Real-Time YouTube Player & Supabase Captions Engine • Matomo Cloud Telemetry</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div class="status-badge">
+                    <span class="pulse-dot"></span>
+                    <span>5 SESSIONS ACTIVE</span>
+                </div>
+                <button id="btn-theme-toggle" class="btn btn-theme-toggle" title="Toggle Light / Dark Mode">
+                    🌙 Dark
+                </button>
+            </div>
+        </header>
+
+        <!-- Session Selection Bar & View Mode Switcher -->
+        <div class="controls-toolbar">
+            <nav class="session-tabs" id="session-tabs">
+                <button class="session-tab active" data-session-key="session_1">
+                    <span>🏛️ Session 1 (Main Hall)</span>
+                    <span class="tab-badge">OYB-rvbzUFs</span>
+                </button>
+                <button class="session-tab" data-session-key="session_satellite_1_topcon">
+                    <span>🔬 Satellite 1 (Topcon)</span>
+                    <span class="tab-badge">62YbUBNgSHo</span>
+                </button>
+                <button class="session-tab" data-session-key="session_2">
+                    <span>📊 Session 2 (Hall B)</span>
+                    <span class="tab-badge">Emj-TTUjRkI</span>
+                </button>
+                <button class="session-tab" data-session-key="session_satellite_2_isr">
+                    <span>📡 Satellite 2 (ISR)</span>
+                    <span class="tab-badge">k9HMw14tZn4</span>
+                </button>
+                <button class="session-tab" data-session-key="session_3">
+                    <span>🎯 Session 3 (Hall C)</span>
+                    <span class="tab-badge">HfvuWBYpTh0</span>
+                </button>
+            </nav>
+
+            <div class="mode-toggle-group">
+                <button id="btn-view-focus" class="btn-mode-toggle active">Focus View</button>
+                <button id="btn-view-grid" class="btn-mode-toggle">5-Session Grid</button>
+            </div>
+        </div>
+
+        <!-- Active Session Info Ribbon -->
+        <section class="session-info-ribbon" id="session-info-ribbon">
+            <div class="info-group">
+                <span class="info-item">Current: <strong id="info-session-name">Session 1 (Main Hall)</strong></span>
+                <span class="info-item">Key: <span class="info-pill" id="info-session-key">session_1</span></span>
+                <span class="info-item">YouTube ID: <span class="info-pill" id="info-session-yt">OYB-rvbzUFs</span></span>
+                <span class="info-item">Supabase Channel: <span class="info-pill" id="info-session-sb">public:captions:OYB-rvbzUFs</span></span>
+            </div>
+            <div>
+                <a id="link-direct-client" href="./Client/index.html?session=session_1&theme=dark" target="_blank" class="btn-link-external">
+                    Open Standalone Player ↗
+                </a>
+            </div>
+        </section>
+
+        <!-- Player Workspace Area -->
+        <main class="player-workspace">
+            <!-- Focus View (Single Large Player) -->
+            <div class="focus-container" id="focus-view">
+                <div class="livespeech-embed"
+                     id="focus-embed-container"
+                     data-session="session_1"
+                     data-broadcast-id="OYB-rvbzUFs"
+                     data-theme="dark"
+                     data-matomo-title="Session 1 (Main Hall) - OYB-rvbzUFs">
+                </div>
+            </div>
+
+            <!-- Multi Grid View (All 5 Sessions Side-by-Side) -->
+            <div class="grid-container" id="grid-view">
+                <!-- Session 1 -->
+                <article class="grid-card">
+                    <div class="grid-card-header">
+                        <div class="grid-card-title">🏛️ Session 1 (Main Hall)</div>
+                        <span class="tab-badge">session_1</span>
+                    </div>
+                    <div class="livespeech-embed"
+                         data-session="session_1"
+                         data-broadcast-id="OYB-rvbzUFs"
+                         data-theme="dark"
+                         data-matomo-title="Session 1 (Main Hall)">
+                    </div>
+                </article>
+
+                <!-- Session Satellite 1 Topcon -->
+                <article class="grid-card">
+                    <div class="grid-card-header">
+                        <div class="grid-card-title">🔬 Satellite 1 (Topcon)</div>
+                        <span class="tab-badge">session_satellite_1_topcon</span>
+                    </div>
+                    <div class="livespeech-embed"
+                         data-session="session_satellite_1_topcon"
+                         data-broadcast-id="62YbUBNgSHo"
+                         data-theme="dark"
+                         data-matomo-title="Session Satellite 1 (Topcon)">
+                    </div>
+                </article>
+
+                <!-- Session 2 -->
+                <article class="grid-card">
+                    <div class="grid-card-header">
+                        <div class="grid-card-title">📊 Session 2 (Hall B)</div>
+                        <span class="tab-badge">session_2</span>
+                    </div>
+                    <div class="livespeech-embed"
+                         data-session="session_2"
+                         data-broadcast-id="Emj-TTUjRkI"
+                         data-theme="dark"
+                         data-matomo-title="Session 2 (Hall B)">
+                    </div>
+                </article>
+
+                <!-- Session Satellite 2 ISR -->
+                <article class="grid-card">
+                    <div class="grid-card-header">
+                        <div class="grid-card-title">📡 Satellite 2 (ISR)</div>
+                        <span class="tab-badge">session_satellite_2_isr</span>
+                    </div>
+                    <div class="livespeech-embed"
+                         data-session="session_satellite_2_isr"
+                         data-broadcast-id="k9HMw14tZn4"
+                         data-theme="dark"
+                         data-matomo-title="Session Satellite 2 (ISR)">
+                    </div>
+                </article>
+
+                <!-- Session 3 -->
+                <article class="grid-card">
+                    <div class="grid-card-header">
+                        <div class="grid-card-title">🎯 Session 3 (Hall C)</div>
+                        <span class="tab-badge">session_3</span>
+                    </div>
+                    <div class="livespeech-embed"
+                         data-session="session_3"
+                         data-broadcast-id="HfvuWBYpTh0"
+                         data-theme="dark"
+                         data-matomo-title="Session 3 (Hall C)">
+                    </div>
+                </article>
+            </div>
+        </main>
+
+        <!-- Matomo Cloud Telemetry Live Console -->
+        <aside class="matomo-inspector" aria-label="Matomo Analytics Live Inspector">
+            <div class="inspector-header">
+                <div class="inspector-title">
+                    <span>📊 Matomo Cloud Analytics Bridge</span>
+                    <span class="badge-matomo">Live Telemetry</span>
+                </div>
+                <div class="inspector-controls">
+                    <span class="event-counter" id="event-counter">0 events received</span>
+                    <button id="btn-clear-log" class="btn" style="padding: 4px 10px; font-size: 0.75rem;">Clear Log</button>
+                </div>
+            </div>
+
+            <div class="inspector-log-container" id="inspector-log-container">
+                <div class="empty-log" id="empty-log-msg">
+                    Awaiting player events... (Play video, pause, change language or toggle subtitles in player to observe Matomo events)
+                </div>
+            </div>
+        </aside>
+
+        <!-- Footer -->
+        <footer>
+            LiveSpeech MLX TX Web Client • Embedded Matomo Bridge v2 • Supabase Sibling Captions Engine v3
+        </footer>
+    </div>
+
+    <!-- Script: Interactive Session Switcher, Theme Manager & Telemetry Visualizer -->
+    <script>
+        (function() {
+            const SESSIONS = {
+                'session_1': {
+                    name: 'Session 1 (Main Hall)',
+                    youtubeId: 'OYB-rvbzUFs'
+                },
+                'session_satellite_1_topcon': {
+                    name: 'Satellite 1 (Topcon)',
+                    youtubeId: '62YbUBNgSHo'
+                },
+                'session_2': {
+                    name: 'Session 2 (Hall B)',
+                    youtubeId: 'Emj-TTUjRkI'
+                },
+                'session_satellite_2_isr': {
+                    name: 'Satellite 2 (ISR)',
+                    youtubeId: 'k9HMw14tZn4'
+                },
+                'session_3': {
+                    name: 'Session 3 (Hall C)',
+                    youtubeId: 'HfvuWBYpTh0'
+                }
+            };
+
+            let currentSessionKey = 'session_1';
+            let currentTheme = 'dark';
+            let currentView = 'focus';
+            let eventCount = 0;
+
+            const htmlEl = document.documentElement;
+            const btnThemeToggle = document.getElementById('btn-theme-toggle');
+            const sessionTabs = document.querySelectorAll('.session-tab');
+            const infoSessionName = document.getElementById('info-session-name');
+            const infoSessionKey = document.getElementById('info-session-key');
+            const infoSessionYt = document.getElementById('info-session-yt');
+            const infoSessionSb = document.getElementById('info-session-sb');
+            const linkDirectClient = document.getElementById('link-direct-client');
+            const focusContainer = document.getElementById('focus-view');
+            const gridContainer = document.getElementById('grid-view');
+            const btnViewFocus = document.getElementById('btn-view-focus');
+            const btnViewGrid = document.getElementById('btn-view-grid');
+            const inspectorLogContainer = document.getElementById('inspector-log-container');
+            const emptyLogMsg = document.getElementById('empty-log-msg');
+            const eventCounter = document.getElementById('event-counter');
+            const btnClearLog = document.getElementById('btn-clear-log');
+
+            // Theme Toggle
+            btnThemeToggle.addEventListener('click', () => {
+                currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                htmlEl.setAttribute('data-theme', currentTheme);
+                btnThemeToggle.textContent = currentTheme === 'dark' ? '🌙 Dark' : '☀️ Light';
+                
+                // Update focus embed container theme and reload iframe
+                reloadFocusEmbed();
+            });
+
+            // Session Tab Switching
+            sessionTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const sessionKey = tab.getAttribute('data-session-key');
+                    if (sessionKey === currentSessionKey && currentView === 'focus') return;
+
+                    sessionTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    currentSessionKey = sessionKey;
+                    updateSessionInfo(sessionKey);
+
+                    if (currentView === 'grid') {
+                        switchView('focus');
+                    } else {
+                        reloadFocusEmbed();
+                    }
+                });
+            });
+
+            function updateSessionInfo(key) {
+                const s = SESSIONS[key] || { name: key, youtubeId: key };
+                infoSessionName.textContent = s.name;
+                infoSessionKey.textContent = key;
+                infoSessionYt.textContent = s.youtubeId;
+                infoSessionSb.textContent = `public:captions:${s.youtubeId}`;
+                linkDirectClient.href = `./Client/index.html?session=${encodeURIComponent(key)}&theme=${currentTheme}`;
+            }
+
+            function reloadFocusEmbed() {
+                const s = SESSIONS[currentSessionKey] || { name: currentSessionKey, youtubeId: currentSessionKey };
+                focusContainer.innerHTML = '';
+                const newEmbed = document.createElement('div');
+                newEmbed.className = 'livespeech-embed';
+                newEmbed.setAttribute('data-session', currentSessionKey);
+                newEmbed.setAttribute('data-broadcast-id', s.youtubeId);
+                newEmbed.setAttribute('data-theme', currentTheme);
+                newEmbed.setAttribute('data-matomo-title', `${s.name} - ${s.youtubeId}`);
+                newEmbed.style.width = '100%';
+                newEmbed.style.height = '100%';
+                focusContainer.appendChild(newEmbed);
+            }
+
+            // View Mode Switching
+            btnViewFocus.addEventListener('click', () => switchView('focus'));
+            btnViewGrid.addEventListener('click', () => switchView('grid'));
+
+            function switchView(mode) {
+                currentView = mode;
+                if (mode === 'focus') {
+                    btnViewFocus.classList.add('active');
+                    btnViewGrid.classList.remove('active');
+                    focusContainer.style.display = 'block';
+                    gridContainer.style.display = 'none';
+                    reloadFocusEmbed();
+                } else {
+                    btnViewGrid.classList.add('active');
+                    btnViewFocus.classList.remove('active');
+                    focusContainer.style.display = 'none';
+                    gridContainer.style.display = 'grid';
+                }
+            }
+
+            // Live Matomo Telemetry Log
+            window.addEventListener('livespeech:analytics', (e) => {
+                const detail = e.detail || {};
+                const data = detail.data || {};
+                const contentName = detail.contentName || data.broadcast_id || 'Unknown';
+
+                eventCount++;
+                eventCounter.textContent = `${eventCount} event${eventCount === 1 ? '' : 's'} received`;
+                if (emptyLogMsg) emptyLogMsg.style.display = 'none';
+
+                const logEntry = document.createElement('div');
+                const now = new Date();
+                const timeStr = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
+
+                let categoryClass = 'category-video';
+                let catBadgeClass = 'cat-video';
+                let categoryName = 'LiveSpeech Video';
+
+                if (data.action.includes('language') || data.action.includes('subtitles') || data.action.includes('tts')) {
+                    categoryClass = 'category-accessibility';
+                    catBadgeClass = 'cat-accessibility';
+                    categoryName = 'Accessibility';
+                } else if (data.action.includes('mute') || data.action.includes('volume') || data.action.includes('fullscreen')) {
+                    categoryClass = 'category-controls';
+                    catBadgeClass = 'cat-controls';
+                    categoryName = 'Controls';
+                }
+
+                logEntry.className = `log-entry ${categoryClass}`;
+                logEntry.innerHTML = `
+                    <span class="log-time">${timeStr}</span>
+                    <span class="log-category ${catBadgeClass}">${categoryName}</span>
+                    <span class="log-action">${data.action.toUpperCase()}</span>
+                    <span class="log-detail"><strong>${escapeHtml(contentName)}</strong> ${data.language ? `• lang: ${data.language}` : ''} ${data.progress ? `• t: ${Math.round(data.progress)}s` : ''} ${data.milestone ? `• milestone: ${data.milestone}%` : ''}</span>
+                `;
+
+                inspectorLogContainer.prepend(logEntry);
+
+                // Trim log if too long
+                while (inspectorLogContainer.children.length > 50) {
+                    inspectorLogContainer.removeChild(inspectorLogContainer.lastChild);
+                }
+            });
+
+            function escapeHtml(str) {
+                return (str || '').replace(/[&<>'"]/g, 
+                    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+                );
+            }
+
+            btnClearLog.addEventListener('click', () => {
+                inspectorLogContainer.innerHTML = '';
+                eventCount = 0;
+                eventCounter.textContent = '0 events received';
+            });
+
+            // Initial Setup
+            updateSessionInfo(currentSessionKey);
+        })();
+    </script>
+
+    <!-- Master Embed.js helper script (Automatically scans and mounts iframes) -->
+    <script src="embed.js" async></script>
+</body>
+</html>

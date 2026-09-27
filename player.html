@@ -4,12 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LiveSpeech MLX Embedded Player</title>
-    <script>
-        // If opened standalone at root without session param, show the 5-session test landing page
-        if (window.self === window.top && !window.location.search.includes('session=') && !window.location.search.includes('broadcast_id=')) {
-            window.location.replace('./landing.html');
-        }
-    </script>
     <link rel="stylesheet" href="style.css">
     <!-- Supabase JS Client v2 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
